@@ -15,12 +15,13 @@ type AdminServer struct {
 }
 
 func (s *AdminServer) Logging(_ *pb.Nothing, stream pb.Admin_LoggingServer) error {
+	method := "/main.Admin/Logging"
 	consumer := GetConsumerFromContext(stream.Context())
 
-	if !s.Acl.CheckAccess(consumer, "/main.Admin/Logging") {
+	if !s.Acl.CheckAccess(consumer, method) {
 		return status.Errorf(codes.Unauthenticated, "invalid token")
 	}
-
+	s.Logger.LogEvent(consumer, method, "127.0.0.1:8082")
 	logCh := s.Logger.(*SimpleEventLogger).GetLogChannel()
 
 	for event := range logCh {

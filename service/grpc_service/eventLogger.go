@@ -2,6 +2,7 @@ package grpc_service
 
 import (
 	pb "coursera/hw7_microservice/gen"
+	"fmt"
 	"time"
 )
 
@@ -27,6 +28,7 @@ func (l *SimpleEventLogger) LogEvent(consumer, method, host string) {
 		Host:      host,
 	}
 	l.logCh <- event
+	fmt.Printf("logEvent: {consumer: %s, method: %s }\n", consumer, method)
 }
 
 func (l *SimpleEventLogger) GetLogChannel() <-chan *pb.Event {
