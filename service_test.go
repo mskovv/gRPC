@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"coursera/hw7_microservice/gen"
-	"coursera/hw7_microservice/service"
+	grpc2 "coursera/hw7_microservice/service"
 	"fmt"
 	"io"
 	"log"
@@ -47,7 +47,7 @@ func getGrpcConn(t *testing.T) *grpc.ClientConn {
 		grpc.WithInsecure(),
 	)
 	if err != nil {
-		t.Fatalf("cant connect to grpc: %v", err)
+		t.Fatalf("cant connect to grpc_service: %v", err)
 	}
 	return grcpConn
 }
@@ -74,7 +74,7 @@ func getConsumerCtxWithCancel(consumerName string) (context.Context, context.Can
 // старт-стоп сервера
 func TestServerStartStop(t *testing.T) {
 	ctx, finish := context.WithCancel(context.Background())
-	err := service.StartMyMicroservice(ctx, listenAddr, ACLData)
+	err := grpc2.StartMyMicroservice(ctx, listenAddr, ACLData)
 	if err != nil {
 		t.Fatalf("cant start server initial: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestServerStartStop(t *testing.T) {
 
 	// теперь проверим что вы освободили порт и мы можем стартовать сервер ещё раз
 	ctx, finish = context.WithCancel(context.Background())
-	err = service.StartMyMicroservice(ctx, listenAddr, ACLData)
+	err = grpc2.StartMyMicroservice(ctx, listenAddr, ACLData)
 	if err != nil {
 		t.Fatalf("cant start server again: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestServerLeak(t *testing.T) {
 // ACL (права на методы доступа) парсится корректно
 func TestACLParseError(t *testing.T) {
 	// finish'а тут нет потому что стартовать у вас ничего не должно если не получилось распаковать ACL
-	err := service.StartMyMicroservice(context.Background(), listenAddr, "{.;")
+	err := grpc2.StartMyMicroservice(context.Background(), listenAddr, "{.;")
 	if err == nil {
 		t.Fatalf("expacted error on bad acl json, have nil")
 	}
@@ -127,7 +127,7 @@ func TestACLParseError(t *testing.T) {
 func TestACL(t *testing.T) {
 	wait(1)
 	ctx, finish := context.WithCancel(context.Background())
-	err := service.StartMyMicroservice(ctx, listenAddr, ACLData)
+	err := grpc2.StartMyMicroservice(ctx, listenAddr, ACLData)
 	if err != nil {
 		t.Fatalf("cant start server initial: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestACL(t *testing.T) {
 
 func TestLogging(t *testing.T) {
 	ctx, finish := context.WithCancel(context.Background())
-	err := service.StartMyMicroservice(ctx, listenAddr, ACLData)
+	err := grpc2.StartMyMicroservice(ctx, listenAddr, ACLData)
 	if err != nil {
 		t.Fatalf("cant start server initial: %v", err)
 	}
@@ -203,8 +203,8 @@ func TestLogging(t *testing.T) {
 
 	logStream2, err := adm.Logging(getConsumerCtx("logger2"), &gen.Nothing{})
 
-	logData1 := []*gen.Event{}
-	logData2 := []*gen.Event{}
+	var logData1 []*gen.Event
+	var logData2 []*gen.Event
 
 	wait(1)
 
@@ -213,7 +213,7 @@ func TestLogging(t *testing.T) {
 		case <-ctx.Done():
 			return
 		case <-time.After(3 * time.Second):
-			fmt.Println("looks like you dont send anything to log stream in 3 sec")
+			fmt.Println("looks like you dont send anything to log stream in 3 sec", ctx.Value("method"))
 			t.Errorf("looks like you dont send anything to log stream in 3 sec")
 		}
 	}()
@@ -293,7 +293,7 @@ func TestLogging(t *testing.T) {
 
 func TestStat(t *testing.T) {
 	ctx, finish := context.WithCancel(context.Background())
-	err := service.StartMyMicroservice(ctx, listenAddr, ACLData)
+	err := grpc2.StartMyMicroservice(ctx, listenAddr, ACLData)
 	if err != nil {
 		t.Fatalf("cant start server initial: %v", err)
 	}
@@ -432,7 +432,7 @@ func TestStat(t *testing.T) {
 // see comments marked CHANGED
 func TestWorkAfterDisconnect(t *testing.T) {
 	ctx, finish := context.WithCancel(context.Background())
-	err := service.StartMyMicroservice(ctx, listenAddr, ACLData)
+	err := grpc2.StartMyMicroservice(ctx, listenAddr, ACLData)
 	if err != nil {
 		t.Fatalf("cant start server initial: %v", err)
 	}
