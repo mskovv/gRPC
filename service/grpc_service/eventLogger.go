@@ -2,35 +2,53 @@ package grpc_service
 
 import (
 	pb "coursera/hw7_microservice/gen"
-	"fmt"
-	"time"
+	"sync"
 )
 
 type EventLogger interface {
-	LogEvent(consumer, method, host string)
+	LogEvent(event *pb.Event)
+	Subscribe() chan *pb.Event
+	Unsubscribe(chan *pb.Event)
 }
 
 type SimpleEventLogger struct {
-	logCh chan *pb.Event
+	mu          sync.Mutex
+	subscribers map[chan *pb.Event]struct{}
 }
 
 func NewSimpleEventLogger() *SimpleEventLogger {
 	return &SimpleEventLogger{
-		logCh: make(chan *pb.Event, 100),
+		subscribers: make(map[chan *pb.Event]struct{}),
 	}
 }
 
-func (l *SimpleEventLogger) LogEvent(consumer, method, host string) {
-	event := &pb.Event{
-		Timestamp: time.Now().Unix(),
-		Consumer:  consumer,
-		Method:    method,
-		Host:      host,
+func (l *SimpleEventLogger) LogEvent(event *pb.Event) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	for ch := range l.subscribers {
+		select {
+		case ch <- event:
+		default:
+		}
 	}
-	l.logCh <- event
-	fmt.Printf("logEvent: {consumer: %s, method: %s }\n", consumer, method)
 }
 
-func (l *SimpleEventLogger) GetLogChannel() <-chan *pb.Event {
-	return l.logCh
+func (l *SimpleEventLogger) Subscribe() chan *pb.Event {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	ch := make(chan *pb.Event, 100)
+	l.subscribers[ch] = struct{}{}
+	return ch
+}
+
+func (l *SimpleEventLogger) Unsubscribe(ch chan *pb.Event) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if _, ok := l.subscribers[ch]; ok {
+		delete(l.subscribers, ch)
+		close(ch)
+	}
 }

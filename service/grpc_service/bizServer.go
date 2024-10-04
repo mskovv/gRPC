@@ -22,7 +22,12 @@ func (s *BizServer) processMethod(ctx context.Context, method string) (*pb.Nothi
 		return nil, status.Errorf(codes.Unauthenticated, "invalid token")
 	}
 
-	s.Logger.LogEvent(consumer, method, "127.0.0.1:8082")
+	s.Logger.LogEvent(
+		&pb.Event{
+			Consumer: consumer,
+			Method:   method,
+			Host:     "127.0.0.1:8082",
+		})
 	s.Counter.UpdateStatistics(consumer, method)
 
 	return &pb.Nothing{}, nil

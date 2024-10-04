@@ -1,6 +1,7 @@
 package grpc_service
 
 import (
+	"context"
 	pb "coursera/hw7_microservice/gen"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -21,16 +22,32 @@ func (s *AdminServer) Logging(_ *pb.Nothing, stream pb.Admin_LoggingServer) erro
 	if !s.Acl.CheckAccess(consumer, method) {
 		return status.Errorf(codes.Unauthenticated, "invalid token")
 	}
-	s.Logger.LogEvent(consumer, method, "127.0.0.1:8082")
-	logCh := s.Logger.(*SimpleEventLogger).GetLogChannel()
+	s.Logger.LogEvent(
+		&pb.Event{
+			Consumer: consumer,
+			Method:   method,
+			Host:     "127.0.0.1:8082",
+		})
 
-	for event := range logCh {
-		if err := stream.Send(event); err != nil {
-			return err
+	logCh := s.Logger.Subscribe()
+	defer func() {
+		s.Logger.Unsubscribe(logCh)
+	}()
+
+	ctx, cancel := context.WithTimeout(stream.Context(), 2*time.Second)
+	defer cancel()
+
+	for {
+		select {
+		case event := <-logCh:
+			if err := stream.Send(event); err != nil {
+				return err
+			}
+		case <-ctx.Done():
+			s.Logger.Unsubscribe(logCh)
+			return stream.Context().Err()
 		}
 	}
-	stream.Context().Done()
-	return nil
 }
 
 func (s *AdminServer) Statistics(interval *pb.StatInterval, stream pb.Admin_StatisticsServer) error {
