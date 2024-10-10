@@ -5,12 +5,6 @@ import (
 	"sync"
 )
 
-type EventLogger interface {
-	LogEvent(event *pb.Event)
-	Subscribe() chan *pb.Event
-	Unsubscribe(chan *pb.Event)
-}
-
 type SimpleEventLogger struct {
 	mu          sync.Mutex
 	subscribers map[chan *pb.Event]struct{}

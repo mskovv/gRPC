@@ -11,7 +11,7 @@ import (
 	"net"
 )
 
-// AdminHandler тут вы пишете код
+// StartMyMicroservice AdminHandler тут вы пишете код
 // обращаю ваше внимание - в этом задании запрещены глобальные переменные
 func StartMyMicroservice(ctx context.Context, listenAddr string, aclData string) error {
 	aclMap := grpc2.ACLData{}
@@ -33,11 +33,14 @@ func StartMyMicroservice(ctx context.Context, listenAddr string, aclData string)
 
 	logger := grpc2.NewSimpleEventLogger()
 	counter := grpc2.NewSimpleStatsCounter()
+	notifier := grpc2.NewStatsNotifier()
 
 	adminServer := &grpc2.AdminServer{
-		Logger:  logger,
-		Counter: counter,
-		Acl:     acl,
+		Logger:        logger,
+		Counter:       counter,
+		StatsNotifier: notifier,
+		Acl:           acl,
+		Ctx:           ctx,
 	}
 
 	bizServer := &grpc2.BizServer{

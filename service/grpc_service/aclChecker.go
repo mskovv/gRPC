@@ -2,10 +2,6 @@ package grpc_service
 
 import "strings"
 
-type ACLChecker interface {
-	CheckAccess(consumer, method string) bool
-}
-
 type ACLData map[string][]string
 
 type SimpleACLChecker struct {

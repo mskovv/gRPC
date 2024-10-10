@@ -2,11 +2,6 @@ package grpc_service
 
 import "sync"
 
-type StatsCounter interface {
-	UpdateStatistics(consumer, method string)
-	GetStats() (map[string]uint64, map[string]uint64)
-}
-
 type SimpleStatsCounter struct {
 	statsLock     sync.Mutex
 	methodCount   map[string]uint64

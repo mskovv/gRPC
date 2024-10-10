@@ -17,13 +17,13 @@ func main() {
 	//counter := biz.NewSimpleStatsCounter()
 	//
 	//adminServer := &biz.AdminServer{
-	//	Logger:  logger,
-	//	Counter: counter,
+	//	Notifier:  logger,
+	//	StatsNotifier: counter,
 	//}
 	//
 	//bizServer := &biz.BizServer{
-	//	Logger:  logger,
-	//	Counter: counter,
+	//	Notifier:  logger,
+	//	StatsNotifier: counter,
 	//}
 	//
 	//reflection.Register(srv)
