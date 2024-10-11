@@ -18,6 +18,7 @@ type EventLogger interface {
 type StatsCounter interface {
 	UpdateStatistics(consumer, method string)
 	GetStats() (map[string]uint64, map[string]uint64)
+	ClearStat()
 }
 
 type StatsNotifier interface {
@@ -81,35 +82,54 @@ func (s *AdminServer) Statistics(interval *pb.StatInterval, stream pb.Admin_Stat
 	method := "/main.Admin/Statistics"
 	var consumer string
 	consumer = GetConsumerFromContext(stream.Context())
-	fmt.Println(consumer)
 
 	if !s.Acl.CheckAccess(consumer, method) {
 		return status.Errorf(codes.Unauthenticated, "invalid token")
 	}
 
-	//s.Counter.UpdateStatistics(consumer, method)
+	// Слушатель подписывается на прослушку канала статистки.
+	// Его добавляют в мапку слушателей и получает канал.
 	statCh := s.StatsNotifier.Subscribe()
+	//Отложенный вызов отписки слушателя
 	defer s.StatsNotifier.Unsubscribe(statCh)
 
+	// Создаем тиккер на время, которое передал нам слушатель
 	ticker := time.NewTicker(time.Duration(interval.IntervalSeconds) * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case stat := <-statCh:
-			if err := stream.Send(stat); err != nil {
-				return err
-			}
-		case <-ticker.C:
+		// Должны что-то делать при получении статистики новой
+		case <-statCh:
+			// Добавляем в статистику новую запись о слушателе и методе
 			s.Counter.UpdateStatistics(consumer, method)
+
+		//	С каждым тиком должны ОТПРАВЛЯТЬ статистику
+		case <-ticker.C:
+			// Получаем всю статистику из счетчиков в виде мапок
 			methodStats, consumerStats := s.Counter.GetStats()
+
+			//Создаем объект статистики, которую будем отправлять
 			stats := &pb.Stat{
 				Timestamp:  time.Now().Unix(),
 				ByMethod:   methodStats,
 				ByConsumer: consumerStats,
 			}
+			//NotifyAll проходится по всем слушателям из мапки и отправляет им статистику.
 			s.StatsNotifier.NotifyAll(stats)
+			fmt.Println("отправляем статистику слушателям")
+
+			fmt.Println("channel")
+			if err := stream.Send(stats); err != nil {
+				return err
+			}
+			fmt.Println("stat before clear", stats)
+			s.Counter.ClearStat()
+			fmt.Println("stat after clear", stats)
 		case <-s.Ctx.Done():
+			//Отложенный вызов отписки слушателя
+			s.StatsNotifier.Unsubscribe(statCh)
+			s.Counter.ClearStat()
 			return stream.Context().Err()
 		}
 	}

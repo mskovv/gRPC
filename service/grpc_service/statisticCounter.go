@@ -1,6 +1,8 @@
 package grpc_service
 
-import "sync"
+import (
+	"sync"
+)
 
 type SimpleStatsCounter struct {
 	statsLock     sync.Mutex
@@ -28,4 +30,12 @@ func (s *SimpleStatsCounter) GetStats() (map[string]uint64, map[string]uint64) {
 	defer s.statsLock.Unlock()
 
 	return s.methodCount, s.consumerCount
+}
+
+func (s *SimpleStatsCounter) ClearStat() {
+	s.statsLock.Lock()
+	defer s.statsLock.Unlock()
+
+	clear(s.methodCount)
+	clear(s.consumerCount)
 }

@@ -50,8 +50,8 @@ func StartMyMicroservice(ctx context.Context, listenAddr string, aclData string)
 	}
 
 	reflection.Register(srv)
-	pb.RegisterBizServer(srv, bizServer)
 	pb.RegisterAdminServer(srv, adminServer)
+	pb.RegisterBizServer(srv, bizServer)
 
 	go func() {
 		if err := srv.Serve(lis); err != nil {

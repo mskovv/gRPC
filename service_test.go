@@ -328,7 +328,7 @@ func TestStat(t *testing.T) {
 			} else if err == io.EOF {
 				break
 			}
-			// log.Println("stat1", stat, err)
+			//log.Println("stat1", stat, err)
 			mu.Lock()
 			// это грязный хак
 			// protobuf добавляет к структуре свои поля, которвые не видны при приведении к строке и при reflect.DeepEqual
@@ -349,7 +349,7 @@ func TestStat(t *testing.T) {
 			} else if err == io.EOF {
 				break
 			}
-			// log.Println("stat2", stat, err)
+			log.Println("stat2", stat, err)
 			mu.Lock()
 			// это грязный хак
 			// protobuf добавляет к структуре свои поля, которвые не видны при приведении к строке и при reflect.DeepEqual
