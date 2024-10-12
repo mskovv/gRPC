@@ -17,7 +17,7 @@ func NewSimpleStatsCounter() *SimpleStatsCounter {
 	}
 }
 
-func (s *SimpleStatsCounter) UpdateStatistics(consumer, method string) {
+func (s *SimpleStatsCounter) AddInStatistics(consumer, method string) {
 	s.statsLock.Lock()
 	defer s.statsLock.Unlock()
 
@@ -25,11 +25,11 @@ func (s *SimpleStatsCounter) UpdateStatistics(consumer, method string) {
 	s.consumerCount[consumer]++
 }
 
-func (s *SimpleStatsCounter) GetStats() (map[string]uint64, map[string]uint64) {
+func (s *SimpleStatsCounter) GetStats() *SimpleStatsCounter {
 	s.statsLock.Lock()
 	defer s.statsLock.Unlock()
 
-	return s.methodCount, s.consumerCount
+	return s
 }
 
 func (s *SimpleStatsCounter) ClearStat() {
