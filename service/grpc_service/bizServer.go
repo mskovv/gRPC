@@ -10,9 +10,8 @@ import (
 
 type BizServer struct {
 	pb.UnimplementedBizServer
-	Logger  EventLogger
-	Counter StatsCounter
-	Acl     ACLChecker
+	Logger EventLogger
+	Acl    ACLChecker
 }
 
 func (s *BizServer) processMethod(ctx context.Context, method string) (*pb.Nothing, error) {
@@ -28,7 +27,6 @@ func (s *BizServer) processMethod(ctx context.Context, method string) (*pb.Nothi
 			Method:   method,
 			Host:     "127.0.0.1:8082",
 		})
-	s.Counter.AddInStatistics(consumer, method)
 
 	return &pb.Nothing{}, nil
 }

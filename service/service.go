@@ -29,25 +29,23 @@ func StartMyMicroservice(ctx context.Context, listenAddr string, aclData string)
 		return err
 	}
 
-	srv := grpc.NewServer()
-
 	logger := grpc2.NewSimpleEventLogger()
-	counter := grpc2.NewSimpleStatsCounter()
-	notifier := grpc2.NewStatsNotifier()
 
 	adminServer := &grpc2.AdminServer{
-		Logger:        logger,
-		Counter:       counter,
-		StatsNotifier: notifier,
-		Acl:           acl,
-		Ctx:           ctx,
+		Logger: logger,
+		Acl:    acl,
+		Ctx:    ctx,
 	}
 
 	bizServer := &grpc2.BizServer{
-		Logger:  logger,
-		Counter: counter,
-		Acl:     acl,
+		Logger: logger,
+		Acl:    acl,
 	}
+
+	srv := grpc.NewServer(
+		grpc.StreamInterceptor(adminServer.StreamInterceptor),
+		grpc.UnaryInterceptor(adminServer.UnaryInterceptor),
+	)
 
 	reflection.Register(srv)
 	pb.RegisterAdminServer(srv, adminServer)
@@ -63,6 +61,23 @@ func StartMyMicroservice(ctx context.Context, listenAddr string, aclData string)
 		<-ctx.Done()
 		srv.GracefulStop()
 		lis.Close()
+	}()
+
+	adminServer.BroadcastStatCh = make(chan *pb.Stat)
+	adminServer.AddStatListenerCh = make(chan chan *pb.Stat)
+	go func() {
+		for {
+			select {
+			case ch := <-adminServer.AddStatListenerCh:
+				adminServer.StatListeners = append(adminServer.StatListeners, ch)
+			case stat := <-adminServer.BroadcastStatCh:
+				for _, ch := range adminServer.StatListeners {
+					ch <- stat
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
 	}()
 
 	return nil
